@@ -322,6 +322,7 @@ class Locator(
     }
 
     fun stopFinding() {
+        demoWalk = false
         if (motion.onStep != null) {
             Log.i(TAG, "Walk to find stopped: $stepCount steps (Android's detector: $androidSteps), ${observations.size} readings, saved ${recorder?.file?.name}")
         }
@@ -338,7 +339,52 @@ class Locator(
     val walkPosition: MapPoint get() = deadReckoning.position
     val facing: Double get() = motion.yaw
 
+    private var demoWalk = false
+
+    /**
+     * Debug builds, for screenshots: loads a walk recorded by [WalkRecorder] (CSV) as if it had just been walked:
+     * its steps, readings and the resulting guidance. Live readings don't join it.
+     */
+    fun demoWalk(csv: String) {
+        if (_state.value.finding != null) stopFinding()
+        if (!motion.start()) return
+        cancelSweepOnly()
+        deadReckoning.reset()
+        observations.clear()
+        stepCount = 0
+        walkStop = null
+        for (row in csv.lineSequence().drop(1).map { it.split(",") }) {
+            when {
+                row.size >= 6 && row[1] == "step" && row[2] == "acc" -> { deadReckoning.step(row[5].toDouble()); stepCount += 1 }
+                row.size >= 6 && row[1] == "rssi" ->
+                    observations.add(Observation(MapPoint(row[3].toDouble(), row[4].toDouble()), row[5].toDouble(), row[2].toInt(), walked))
+            }
+        }
+        val search = RouterSearch(referenceRssi = DistanceEstimator.referenceRssi(target.band))
+        this.search = search
+        demoWalk = true
+        motion.onStep = { } // marks the walk as running; this replay ignores new steps
+        scope.launch {
+            delay(300)
+            motion.tracker.resetYaw()
+            val here = deadReckoning.position
+            val facing = observations.lastOrNull()?.facing ?: 0.0
+            val snapshot = observations.toList()
+            val (belief, guidance) = withContext(Dispatchers.Default) {
+                val belief = search.belief(snapshot, walked)
+                val top = belief.weights.max()
+                val heat = belief.cells.indices.filter { belief.weights[it] > 0.05 * top }.map { belief.cells[it] to belief.weights[it] / top }
+                belief to WalkGuidance(search.guide(belief, here, facing, 2.4), belief.mostLikely, belief.spread, heat, cell = 1.0)
+            }
+            this@Locator.belief = belief
+            this@Locator.guidance = guidance
+            Log.i(TAG, "Demo walk: ${snapshot.size} readings, $stepCount steps, best ${guidance.mostLikely} ±${"%.1f".format(guidance.spread)} m")
+            publishWalk()
+        }
+    }
+
     private fun addWalkReading(rssi: Int) {
+        if (demoWalk) return
         val here = deadReckoning.position
         observations.add(Observation(here, motion.yaw, rssi, walked))
         recorder?.reading(SystemClock.elapsedRealtimeNanos(), rssi, here.x, here.y, motion.yaw)

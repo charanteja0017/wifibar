@@ -54,6 +54,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
+    /** Debug builds: made-up networks for screenshots (see [WifiRepository.useSampleData]). */
+    fun useSampleData() {
+        closeLocator()
+        repository.useSampleData()
+    }
+
+    /** Debug builds: sample networks, Locate on "Home", and a recorded walk shown in Walk to find. */
+    fun demoWalk(csv: String) {
+        useSampleData()
+        val target = repository.readLink()?.let(LocateTarget::of) ?: return
+        openLocator(target)
+        _locator.value?.demoWalk(csv)
+    }
+
     fun closeLocator() {
         _locator.value?.stop()
         _locator.value = null

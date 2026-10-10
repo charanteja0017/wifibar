@@ -41,6 +41,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let url = urls.first, let host = url.host, host.hasPrefix("debug-") {
             switch host {
             case "debug-open": statusController?.show()
+            case "debug-sample": model.useSampleData()
+            case "debug-appearance":
+                // This app only, for screenshots: ?dark, ?light, or anything else to follow the system.
+                let query = url.query() ?? ""
+                NSApp.appearance = query.contains("dark") ? NSAppearance(named: .darkAqua)
+                    : query.contains("light") ? NSAppearance(named: .aqua) : nil
             case "debug-close": statusController?.close()
             case "debug-shrink": statusController?.debugShrink()
             case "debug-locate":

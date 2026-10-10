@@ -1,6 +1,26 @@
-# WiFiBar
+<p align="center">
+  <img src="docs/images/icon-macos.png" width="112" alt="WiFiBar Mac app icon: a white beam aimed at a dot on a blue rounded square">
+  &nbsp;&nbsp;&nbsp;
+  <img src="docs/images/icon-android.png" width="112" alt="WiFiBar Android app icon: the same beam and dot on a blue circle">
+</p>
 
-Wi-Fi signal strength for every nearby access point, and help finding the router itself.
+<h1 align="center">WiFiBar</h1>
+
+<p align="center">Wi-Fi signal strength for every nearby access point, and help finding the router itself.</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/mac-panel-dark.png">
+    <img src="docs/images/mac-panel-light.png" height="380" alt="The Mac menu bar panel: the current network Home with its signal, noise, channel and BSSID, then known and other networks with their access points and dBm">
+  </picture>
+  &nbsp;
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/android-dark-locate.png">
+    <img src="docs/images/android-light-locate.png" height="380" alt="The Android app on a tablet: the network list beside Locate, where Walk to find shows a map of the walk, its readings, a probability cloud and the most likely router position">
+  </picture>
+</p>
+
+<p align="center"><sub>Screenshots use made-up sample networks, not real ones (see <a href="#screenshots">Screenshots</a>).</sub></p>
 
 - **Mac app** (Apple silicon, macOS 26 or later): a menu bar panel in the style of Apple's own Wi-Fi menu, plus a desktop widget.
 - **Android app** (Android 12 or later, phones and tablets): the same network list, plus *Walk to find*, which guides you to the physical router as you walk.
@@ -12,6 +32,7 @@ Both list every network with its signal (bars and dBm), and every access point (
 - [Mac app](#mac-app)
 - [Android app](#android-app)
 - [How Walk to find works](#how-walk-to-find-works)
+- [Screenshots](#screenshots)
 - [Branding](#branding)
 - [Limitations](#limitations)
 - [Credits](#credits)
@@ -20,6 +41,12 @@ Both list every network with its signal (bars and dBm), and every access point (
 ## Mac app
 
 It is built only from system parts: SwiftUI and AppKit controls, SF Symbols, system colours, and a Liquid Glass panel.
+
+<p align="center">
+  <img src="docs/images/mac-panel-light.png" width="300" alt="The Mac panel in light mode, networks collapsed">
+  &nbsp;&nbsp;
+  <img src="docs/images/mac-panel-dark.png" width="300" alt="The Mac panel in dark mode, with the Home network expanded to its three access points">
+</p>
 
 ### Build and run
 
@@ -79,6 +106,11 @@ To open it, click **Locate** on the current-network card, or the viewfinder icon
 
 ### Desktop widget
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/mac-widgets-dark.png">
+  <img src="docs/images/mac-widgets-light.png" width="100%" alt="The desktop widget in small, medium and large sizes: the current network and its dBm, the nearest networks, and all networks with their access points">
+</picture>
+
 **Adding it:** right-click the desktop, choose **Edit Widgets…**, search for "WiFiBar", and add **Wi-Fi Signal**. It comes in three sizes:
 - **Small:** the current network, its dBm and quality.
 - **Medium:** the same plus the four strongest nearby networks.
@@ -103,6 +135,19 @@ To open it, click **Locate** on the current-network card, or the viewfinder icon
 ## Android app
 
 Kotlin and Jetpack Compose (Material 3), in `android/`. The Wi-Fi logic, the router search and its simulator live in a plain Kotlin/JVM module (`android/core`), so they run as ordinary unit tests without a device.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/android-dark-locate.png">
+  <img src="docs/images/android-light-locate.png" width="100%" alt="Tablet layout: the network list on the left and Locate on the right, with the Walk to find map">
+</picture>
+
+<p align="center">
+  <img src="docs/images/android-dark-guide.png" width="49%" alt="Walk to find guidance: an arrow, Turn 143 degrees left, best guess about 2 m away plus or minus 4 m, and a bar showing 2 percent sure the router is within 2 m; below, the live signal at -46 dBm">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/android-dark-about.png">
+    <img src="docs/images/android-light-about.png" width="49%" alt="About and credits: the WiFiBar mark, version, Made by Charan Teja Pampana with a link to charanteja0017.in, and the research papers the app builds on">
+  </picture>
+</p>
 
 ### What it does
 
@@ -198,9 +243,21 @@ cd android
 
 These are simulation results; accuracy on real walks with a known router position hasn't been measured yet.
 
+## Screenshots
+
+The screenshots in this README use made-up networks (Home, Office, Library, Café Guest), so they show no real network names or BSSIDs. Debug builds can do the same:
+
+- **Mac** (`scripts/bundle.sh debug`, then open the debug app): `wifibar://debug-sample` switches to the sample networks, `wifibar://debug-appearance?light` or `?dark` sets this app's appearance, `wifibar://debug-open` shows the panel, and `wifibar://debug-widget-render` saves the widget sizes.
+- **Android** (debug build): `adb shell am start -n com.charan.wifibar/.MainActivity --es demo sample` for the sample networks, `--es demo walk` to add a recorded walk to Walk to find, `--es demo about` for About & credits, and `--es theme light`, `dark` or `system` for the app's theme.
+
 ## Branding
 
 The logo is plotted, not drawn: it's the app's own direction-sweep smoothing (a circular Gaussian, σ = 25°) aimed at a dot, the router. See `Branding/BRAND.md`.
+
+<p>
+  <img src="docs/images/icon-macos.png" width="72" alt="Mac app icon">
+  <img src="docs/images/icon-android.png" width="72" alt="Android app icon">
+</p>
 
 - `python3 Branding/make_brand.py` regenerates the icons and brand sheet in `Branding/out/` (needs matplotlib, numpy and Pillow).
 - `Branding/make_android_colors.mjs` regenerates the Android colour schemes (`android/app/…/ui/BrandColors.kt`) from the brand palette with Google's material-color-utilities; usage is at the top of the file.

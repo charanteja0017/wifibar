@@ -11,6 +11,8 @@ import com.charan.wifibar.core.AccessPoint
 import com.charan.wifibar.core.LinkInfo
 import com.charan.wifibar.core.NetworkGroup
 import com.charan.wifibar.core.NetworkGrouping
+import com.charan.wifibar.core.SecurityKind
+import com.charan.wifibar.core.WifiBand
 import com.charan.wifibar.core.WifiMapping
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,7 +45,38 @@ class WifiRepository(private val context: Context) {
     }
     private var registered = false
 
+    /**
+     * Debug builds, for README screenshots: made-up networks (the same names and BSSIDs as the Mac widget's
+     * preview), so no real network names or addresses appear. Real scans and link reads are ignored after this.
+     */
+    var usesSampleData = false
+        private set
+
+    fun useSampleData() {
+        usesSampleData = true
+        fun ap(ssid: String, bssid: String, rssi: Int, channel: Int, band: WifiBand, width: Int) =
+            AccessPoint(ssid, bssid, rssi, channel, band, width, SecurityKind.PERSONAL, "WPA2/WPA3 Personal", SystemClock.elapsedRealtimeNanos() / 1000)
+        val aps = listOf(
+            ap("Home", "a4:83:e7:10:20:01", -48, 36, WifiBand.GHZ_5, 80),
+            ap("Home", "a4:83:e7:10:20:02", -61, 6, WifiBand.GHZ_2_4, 20),
+            ap("Home", "a4:83:e7:10:20:03", -70, 149, WifiBand.GHZ_5, 80),
+            ap("Office", "3c:22:fb:00:11:01", -66, 44, WifiBand.GHZ_5, 80),
+            ap("Office", "3c:22:fb:00:11:02", -79, 1, WifiBand.GHZ_2_4, 20),
+            ap("Library", "5a:10:44:2e:00:01", -71, 48, WifiBand.GHZ_5, 40),
+            ap("Library", "5a:10:44:2e:00:02", -77, 157, WifiBand.GHZ_5, 40),
+            ap("Café Guest", "f0:9f:c2:aa:bb:01", -74, 11, WifiBand.GHZ_2_4, 20),
+        )
+        _state.value = WifiState(
+            wifiEnabled = true,
+            accessPoints = aps,
+            groups = NetworkGrouping.group(aps, "Home", "a4:83:e7:10:20:01"),
+            resultsAtElapsedMillis = SystemClock.elapsedRealtime(),
+        )
+        readLink()
+    }
+
     fun start() {
+        if (usesSampleData) return
         if (!registered) {
             wifi.registerScanResultsCallback(context.mainExecutor, scanCallback)
             registered = true
@@ -62,6 +95,7 @@ class WifiRepository(private val context: Context) {
     /** False when Android throttled the request (or Wi-Fi is off). Deprecated but still the only way. */
     @Suppress("DEPRECATION")
     fun startScan(): Boolean {
+        if (usesSampleData) return true
         val started = try {
             wifi.startScan()
         } catch (e: SecurityException) {
@@ -74,6 +108,7 @@ class WifiRepository(private val context: Context) {
 
     @SuppressLint("MissingPermission")
     fun readResults() {
+        if (usesSampleData) return
         val results = try {
             wifi.scanResults
         } catch (e: SecurityException) {
@@ -97,6 +132,12 @@ class WifiRepository(private val context: Context) {
     /** The connected network. Android refreshes its RSSI about every 3 s (measured on a Xiaomi Pad 8). */
     @Suppress("DEPRECATION")
     fun readLink(): LinkInfo? {
+        if (usesSampleData) {
+            // Wobbles a little, like a real reading, so Locate's chart has something to show.
+            val link = LinkInfo("Home", "a4:83:e7:10:20:01", -48 + (SystemClock.elapsedRealtime() / 3_000 % 5).toInt() - 2, 1201, 36, WifiBand.GHZ_5, "802.11ax")
+            _state.update { it.copy(link = link, groups = NetworkGrouping.group(it.accessPoints, link.ssid, link.bssid)) }
+            return link
+        }
         val info = wifi.connectionInfo
         val link = if (info == null || info.rssi <= -127 || info.frequency <= 0) {
             null

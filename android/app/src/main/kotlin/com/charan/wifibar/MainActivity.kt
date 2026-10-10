@@ -2,6 +2,7 @@ package com.charan.wifibar
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.app.UiModeManager
 import android.content.pm.ApplicationInfo
 import android.net.Uri
 import android.os.Bundle
@@ -51,10 +52,28 @@ class MainActivity : ComponentActivity() {
         handleDemo(intent)
     }
 
-    /** Debug builds only: `adb shell am start -n com.charan.wifibar/.MainActivity --es demo sweep`. */
+    /**
+     * Debug builds only, e.g. `adb shell am start -n com.charan.wifibar/.MainActivity --es demo sweep`:
+     * - `--es demo sweep`: replay a recorded direction sweep.
+     * - `--es demo sample`: made-up networks, for screenshots without real names or BSSIDs.
+     * - `--es demo walk`: sample networks plus a recorded walk in Walk to find (debug asset `demo-walk.csv`).
+     * - `--es demo about`: open About & credits.
+     * - `--es theme light|dark|system`: this app's light or dark mode (Android's per-app night mode).
+     */
     private fun handleDemo(intent: Intent?) {
         val debuggable = applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
-        if (debuggable && intent?.getStringExtra("demo") == "sweep") model.demoSweep()
+        if (!debuggable || intent == null) return
+        when (intent.getStringExtra("theme")) {
+            "light" -> getSystemService(UiModeManager::class.java).setApplicationNightMode(UiModeManager.MODE_NIGHT_NO)
+            "dark" -> getSystemService(UiModeManager::class.java).setApplicationNightMode(UiModeManager.MODE_NIGHT_YES)
+            "system" -> getSystemService(UiModeManager::class.java).setApplicationNightMode(UiModeManager.MODE_NIGHT_AUTO)
+        }
+        when (intent.getStringExtra("demo")) {
+            "sweep" -> model.demoSweep()
+            "sample" -> model.useSampleData()
+            "walk" -> runCatching { assets.open("demo-walk.csv").bufferedReader().readText() }.getOrNull()?.let(model::demoWalk)
+            "about" -> model.openAbout()
+        }
     }
 
     @Composable

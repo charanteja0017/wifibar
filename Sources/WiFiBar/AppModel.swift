@@ -109,7 +109,23 @@ final class AppModel {
         Task { await refresh(fullScan: true) }
     }
 
+    #if DEBUG
+    /// Debug builds: made-up networks (the widget's preview data) for README screenshots, so no real
+    /// network names or BSSIDs appear. Live scans are ignored and nothing is written to snapshot.json.
+    private(set) var usesSampleData = false
+
+    func useSampleData() {
+        usesSampleData = true
+        snapshot = WiFiSnapshot.preview
+        hasLoaded = true
+        onSnapshotChange?(snapshot)
+    }
+    #endif
+
     private func apply(_ reading: WiFiReading) {
+        #if DEBUG
+        if usesSampleData { return }
+        #endif
         let link = reading.link
         let groups = NetworkGrouping.group(
             reading.accessPoints,
