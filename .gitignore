@@ -1,0 +1,19 @@
+.DS_Store
+
+# Swift package and Mac app builds
+.build/
+build/
+
+# Android
+android/.gradle/
+android/.kotlin/
+android/build/
+android/app/build/
+android/core/build/
+android/local.properties
+*.apk
+*.aab
+
+# Working material, not part of the project
+blog-post/
+corewlan.swift

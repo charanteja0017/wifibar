@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">WiFiBar</string>
+    <string name="widget_description">Signal strength of your network and the access points around you</string>
+</resources>
